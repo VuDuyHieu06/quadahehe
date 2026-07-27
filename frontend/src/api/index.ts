@@ -28,7 +28,7 @@ export const amenityApi = {
 export const roomApi = {
   available: (roomTypeId: number, checkIn: string, checkOut: string) =>
     api.get(`/rooms/${roomTypeId}/available`, { params: { checkIn, checkOut } })
-      .then((r) => unwrap<{ room_id: number; room_number: string }[]>(r as any)),
+      .then((r) => unwrap<{ room_id: number; room_number: string; room_type_id: number; price_per_night: number }[]>(r as any)),
   byType: (roomTypeId: number) =>
     api.get('/rooms', { params: { roomTypeId } }).then((r) => unwrap<Room[]>(r as any)),
 };

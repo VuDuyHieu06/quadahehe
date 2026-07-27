@@ -14,14 +14,30 @@ export class RoomService {
 
   // Phòng còn trống cho dạng phòng trong khoảng ngày (chống overbooking).
   async availableRooms(roomTypeId: number, checkIn: Date, checkOut: Date) {
+    const roomType = await prisma.roomType.findUnique({
+      where: { room_type_id: roomTypeId },
+    });
+
+    if (!roomType) {
+      throw new Error('Không tìm thấy loại phòng.');
+    }
+
     const rooms = await prisma.room.findMany({
       where: { room_type_id: roomTypeId, status: 'available' },
       orderBy: { room_number: 'asc' },
     });
-    const free: { room_id: number; room_number: string }[] = [];
+
+    const free: { room_id: number; room_number: string; room_type_id: number; price_per_night: number }[] = [];
     for (const room of rooms) {
       const overlap = await hotelService.hasOverlap(room.room_id, checkIn, checkOut);
-      if (!overlap) free.push({ room_id: room.room_id, room_number: room.room_number });
+      if (!overlap) {
+        free.push({
+          room_id: room.room_id,
+          room_number: room.room_number,
+          room_type_id: room.room_type_id,
+          price_per_night: Number(roomType.price_per_night),
+        });
+      }
     }
     return free;
   }

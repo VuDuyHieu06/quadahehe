@@ -8,7 +8,7 @@ import { createRoomSchema, updateRoomSchema } from './room.validator';
 export const roomRoutes = Router();
 
 // Lấy danh sách phòng theo room_type (admin) và phòng trống (customer)
-roomRoutes.get('/', authRequired, adminOnly, roomController.listByRoomType); // ?roomTypeId=
+roomRoutes.get('/', roomController.listByRoomType); // ?roomTypeId=
 roomRoutes.get('/:roomTypeId/available', authRequired, roomController.available);
 roomRoutes.post('/', authRequired, adminOnly, validate(createRoomSchema), roomController.create);
 roomRoutes.patch('/:id', authRequired, adminOnly, validate(updateRoomSchema), roomController.update);
