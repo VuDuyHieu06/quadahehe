@@ -4,7 +4,6 @@ import { hotelApi, amenityApi } from '../api';
 import { useFetch } from '../hooks/useFetch';
 import { useBookingEvent } from '../hooks/useBookingEvents';
 import { HotelCard } from '../components/hotel/HotelCard';
-import { SearchBar } from '../components/layout/SearchBar';
 import { Filters, type FilterState } from '../components/filters/Filters';
 import { Spinner } from '../components/ui/Spinner';
 
@@ -49,9 +48,6 @@ export function Search() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6">
-      <div className="mb-6">
-        <SearchBar compact />
-      </div>
       <h1 className="mb-4 text-xl font-bold text-gray-900">{header}</h1>
 
       <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
