@@ -33,7 +33,7 @@ docker compose up -d
 cd backend
 cp .env.example .env
 npm install
-npx prisma migrate dev --name init   # tạo schema
+npx prisma db push
 npm run seed                          # nạp dữ liệu mẫu
 npm run dev                           # API trên http://localhost:4000
 ```
