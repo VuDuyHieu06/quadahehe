@@ -19,11 +19,14 @@ export type CreateHotelInput = z.infer<typeof createHotelSchema>;
 export type UpdateHotelInput = z.infer<typeof updateHotelSchema>;
 
 export const hotelQuerySchema = z.object({
-  city: z.string().optional(),
-  property_type: z.enum(propertyTypeValues).optional(),
-  checkIn: z.string().optional(),
-  checkOut: z.string().optional(),
-  guests: z.coerce.number().int().min(1).optional(),
+  city: z.string().optional().transform((val) => val === '' ? undefined : val),
+  property_type: z.enum(propertyTypeValues).optional().transform((val) => val === '' ? undefined : val),
+  checkIn: z.string().optional().transform((val) => val === '' ? undefined : val),
+  checkOut: z.string().optional().transform((val) => val === '' ? undefined : val),
+  guests: z.preprocess((arg) => {
+    if (arg === '' || arg === undefined) return undefined;
+    return Number(arg);
+  }, z.number().int().min(1).optional()),
   minPrice: z.coerce.number().optional(),
   maxPrice: z.coerce.number().optional(),
   minStars: z.coerce.number().int().min(0).max(5).optional(),
