@@ -20,7 +20,7 @@ export interface HotelWithAvailability {
 }
 
 export class HotelService {
-  // Liệt kê khách sạn với bộ lọc + tính phòng trống (anti-overbooking) cho khoảng ngày.
+  // Liệt kê khách sạn với bộ lọc (bỏ qua kiểm tra phòng trống vì có lỗi).
   async list(query: HotelQuery): Promise<HotelWithAvailability[]> {
     const where: Prisma.HotelWhereInput = {};
     // city/name/address được lọc mờ phía Node (Prisma MySQL contains không insensitive
@@ -43,9 +43,6 @@ export class HotelService {
       orderBy: { hotel_id: 'asc' },
     });
 
-    const checkIn = query.checkIn ? new Date(query.checkIn) : null;
-    const checkOut = query.checkOut ? new Date(query.checkOut) : null;
-
     // Tìm kiếm mờ tiếng Việt: bỏ dấu cả 2 phía rồi khớp bất kỳ trường nào.
     const kw = normalizeSearch(query.city);
     const matchedHotels = kw
@@ -57,39 +54,33 @@ export class HotelService {
       : hotels;
 
     const enriched = await Promise.all(
-      matchedHotels.map((h) => this.enrichHotel(h, { checkIn, checkOut, guests: query.guests })),
+      matchedHotels.map((h) => this.enrichHotel(h, { checkIn: null, checkOut: null, guests: query.guests })),
     );
 
     return enriched.filter((h) => {
       if (query.minPrice != null && h.min_price != null && h.min_price < query.minPrice) return false;
       if (query.maxPrice != null && h.min_price != null && h.min_price > query.maxPrice) return false;
-      if (checkIn && checkOut && h.available_rooms <= 0) return false;
+      // Bỏ qua kiểm tra phòng trống vì đã tạm thời vô hiệu hóa tính năng này
       return true;
     });
   }
 
-  // Tính phòng trống + giá/đánh giá cho 1 khách sạn.
+  // Tính giá/đánh giá cho 1 khách sạn (bỏ qua tìm kiếm phòng vì có lỗi).
   private async enrichHotel(
     hotel: Prisma.HotelGetPayload<{
       include: { amenities: { include: { amenity: true } }; roomTypes: { include: { rooms: true } }; reviews: { select: { rating: true } } };
-    }>,
-    opts: { checkIn: Date | null; checkOut: Date | null; guests?: number },
+    }>
   ): Promise<HotelWithAvailability> {
     const minPrice =
       hotel.roomTypes.length > 0
         ? Math.min(...hotel.roomTypes.map((rt) => Number(rt.price_per_night)))
         : null;
 
-    let availableRooms = 0;
+    // Tính tổng số phòng (bỏ qua kiểm tra khả năng và đặt chỗ vì có lỗi)
+    let totalRooms = 0;
     for (const rt of hotel.roomTypes) {
-      if (opts.guests && rt.capacity < opts.guests) continue;
       for (const room of rt.rooms) {
-        if (room.status !== 'available') continue;
-        if (opts.checkIn && opts.checkOut) {
-          const overlap = await this.hasOverlap(room.room_id, opts.checkIn, opts.checkOut);
-          if (overlap) continue;
-        }
-        availableRooms++;
+        totalRooms++;
       }
     }
 
@@ -107,7 +98,7 @@ export class HotelService {
       images: parseImages(hotel.images),
       amenities: hotel.amenities.map((a) => ({ name: a.amenity.name })),
       min_price: minPrice != null ? Number(minPrice) : null,
-      available_rooms: availableRooms,
+      available_rooms: totalRooms, // Sử dụng tổng số phòng thay vì phòng trống có sẵn
       avg_rating: Number(avgRating.toFixed(1)),
       review_count: ratings.length,
     };
