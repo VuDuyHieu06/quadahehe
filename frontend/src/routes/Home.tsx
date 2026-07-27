@@ -1,4 +1,3 @@
-import { SearchBar } from '../components/layout/SearchBar';
 import { TabsNav } from '../components/layout/TabsNav';
 import { PropertyTypeGrid } from '../components/hotel/PropertyTypeGrid';
 
@@ -16,13 +15,6 @@ export function Home() {
         <div className="absolute inset-x-0 top-16 mx-auto max-w-7xl px-4">
           <div className="mb-4">
             <TabsNav />
-          </div>
-          <h1 className="mb-2 text-3xl font-extrabold text-white drop-shadow sm:text-4xl">
-            Tìm nơi nghỉ dưỡng hoàn hảo
-          </h1>
-          <p className="mb-6 text-white/90">Hàng ngàn chỗ nghỉ trên khắp Việt Nam — đặt phòng dễ dàng.</p>
-          <div className="max-w-4xl">
-            <SearchBar />
           </div>
         </div>
       </section>
