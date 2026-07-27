@@ -1,0 +1,130 @@
+// Stayhub — Radiant Hope Hotel
+// Lược đồ cơ sở dữ liệu chuẩn hóa (MySQL), tách biệt Room_Types (mô tả) và Rooms (phòng vật lý)
+// để chống overbooking. Xem docs/constitution.md.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+enum PropertyType {
+  HOTEL
+  RESORT
+  VILLA
+  APARTMENT
+}
+
+enum RoomStatus {
+  available
+  maintenance
+  booked
+}
+
+enum BookingStatus {
+  pending
+  confirmed
+  cancelled
+  completed
+}
+
+model User {
+  user_id        Int       @id @default(autoincrement())
+  full_name      String
+  email          String    @unique
+  password_hash  String
+  phone          String?
+  role           Role      @default(CUSTOMER)
+  createdAt      DateTime  @default(now())
+  bookings       Booking[]
+  reviews        Review[]
+}
+
+model Hotel {
+  hotel_id      Int             @id @default(autoincrement())
+  name          String
+  property_type PropertyType
+  city          String
+  address       String
+  description   String?         @db.Text
+  star_rating   Int             @default(0)
+  images        Json?           // mảng URL ảnh (gallery)
+  createdAt     DateTime        @default(now())
+  roomTypes     RoomType[]
+  amenities     HotelAmenity[]
+  reviews       Review[]
+}
+
+model RoomType {
+  room_type_id    Int                            @id @default(autoincrement())
+  hotel_id        Int
+  name            String
+  capacity        Int                            @default(2)
+  price_per_night Decimal                        @db.Decimal(10, 2)
+  createdAt       DateTime                       @default(now())
+  hotel           Hotel                          @relation(fields: [hotel_id], references: [hotel_id])
+  rooms           Room[]
+}
+
+model Room {
+  room_id      Int        @id @default(autoincrement())
+  room_type_id Int
+  room_number  String
+  status       RoomStatus @default(available)
+  createdAt    DateTime   @default(now())
+  roomType     RoomType   @relation(fields: [room_type_id], references: [room_type_id])
+  bookings     Booking[]
+
+  @@unique([room_type_id, room_number])
+}
+
+model Amenity {
+  amenity_id Int             @id @default(autoincrement())
+  name       String          @unique
+  hotels     HotelAmenity[]
+}
+
+model HotelAmenity {
+  hotel_id   Int
+  amenity_id Int
+  hotel      Hotel   @relation(fields: [hotel_id], references: [hotel_id], onDelete: Cascade)
+  amenity    Amenity @relation(fields: [amenity_id], references: [amenity_id], onDelete: Cascade)
+
+  @@id([hotel_id, amenity_id])
+}
+
+model Booking {
+  booking_id     Int           @id @default(autoincrement())
+  user_id        Int
+  room_id        Int
+  check_in_date  DateTime
+  check_out_date DateTime
+  total_price    Decimal       @db.Decimal(12, 2)
+  status         BookingStatus @default(pending)
+  createdAt      DateTime      @default(now())
+  user           User          @relation(fields: [user_id], references: [user_id])
+  room           Room          @relation(fields: [room_id], references: [room_id])
+
+  @@unique([room_id, check_in_date, check_out_date])
+}
+
+model Review {
+  review_id Int      @id @default(autoincrement())
+  hotel_id  Int
+  user_id   Int
+  rating    Int      // 1..5
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+  hotel     Hotel    @relation(fields: [hotel_id], references: [hotel_id])
+  user      User     @relation(fields: [user_id], references: [user_id])
+
+  @@unique([hotel_id, user_id]) // 1 user chỉ review 1 lần/khách sạn
+}
